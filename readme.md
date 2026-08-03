@@ -6,7 +6,9 @@ Transfer files with a screen and a camera — one side plays an animated QR
 stream, the other films it. No network, no pairing.
 
 Measured: **~42 KB/s** on a Logitech C270, **~195 KB/s** with an iPhone as
-camera ([details](docs/results.md)).
+camera ([details](docs/results.md)). The iPhone number isn't rigorously
+benchmarked yet and should go higher — the camera only delivered 24–30 fps in
+those runs; at its 60 fps the ceiling doubles.
 
 ## Install
 
