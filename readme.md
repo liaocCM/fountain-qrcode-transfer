@@ -43,10 +43,11 @@ Tips that matter:
 - Run the sender fps **offset from** the camera fps (camera 30 → sender 40)
 - More light = shorter exposure = fewer wasted frames
 
-Find the best config for your hardware automatically:
+Find the best config for your hardware automatically — with a 30 fps camera,
+start scanning around a 40 fps sender:
 
 ```bash
-fqt sweep --camera 0 --kb 300 --configs "30:2x1:far,40:2x1:far,40:2x2:far"
+fqt sweep --camera 0 --kb 300 --configs "40:2x1:far,40:2x2:far,36:2x2:far"
 ```
 
 ## Limits
@@ -59,7 +60,18 @@ fqt sweep --camera 0 --kb 300 --configs "30:2x1:far,40:2x1:far,40:2x2:far"
 - Not encrypted: anyone filming your screen receives the same bytes
 
 All liftable (v2 header widening, segmented transfers, checkpoint resume) —
-unbuilt because small files are the realistic use for a ~195 KB/s channel.
+after which size has no practical cap. But the speed is still ~195 KB/s, and
+time is the real wall:
+
+| file | wait (at iPhone speed) |
+|---|---|
+| 500 MB | ~45 min |
+| 4 GB | ~6 h |
+| 10 GB | ~15 h |
+
+Hence unbuilt: streaming 10 GB overnight works on paper, but a cable does it
+in minutes. This channel's value is *transferring with no connection at all*,
+not moving big files.
 
 ## How it works
 
