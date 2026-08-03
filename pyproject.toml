@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fqt"
+version = "0.1.0"
+description = "Fountain-coded QR screen-to-camera file transfer, tuned for throughput"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "opencv-python>=4.9",
+    "zxing-cpp>=2.2",
+    "zstandard>=0.22",
+]
+
+[project.scripts]
+fqt = "fqt.cli:main"
+
+[tool.setuptools]
+packages = ["fqt"]
