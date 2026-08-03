@@ -54,6 +54,25 @@ Find the best config for your hardware automatically:
 fqt sweep --camera 0 --kb 300 --configs "40:2x1:far,40:2x2:far,36:2x2:far"
 ```
 
+## Theoretical ceilings by camera
+
+Ceiling = payload per frame × camera fps. Resolution decides how big a QR grid
+fits (each module needs ~3 camera pixels); fps decides how many frames per
+second you can collect:
+
+| camera | grid that fits | ceiling | 10 MB takes (theor.) | measured |
+|---|---|---|---|---|
+| 480p @ 30fps | 1×1 far | ~42 KB/s | ~4 min | — |
+| 720p @ 30fps | 2×1 far | ~84 KB/s | ~2 min | — |
+| C270 (1280×960 @ 30fps) | 2×2 far | ~169 KB/s | ~1 min | 42 KB/s |
+| 1080p @ 30fps | 3×2 far | ~253 KB/s | ~40 s | — |
+| iPhone (1920×1440 @ 30fps) | 3×2 close | ~515 KB/s | ~20 s | ~195 KB/s |
+| same at a full 60fps | 3×2 close | ~1 MB/s | ~10 s | untested |
+| 4K @ 60fps | 4×3 close | ~2 MB/s | ~5 s | untested |
+
+Real-world lands at 20–50% of ceiling — the gap is yield (exposures straddling
+frame flips), light, and focus.
+
 ## Limits
 
 - Sweet spot ≤ 10 MB (seconds to minutes). 50 MB workable. **190 MB hard cap**
