@@ -19,10 +19,11 @@ Prebuilt wheels only, no compiler. macOS / Windows / Linux.
 
 ## Use
 
-Sender:
+Sender (example pairs a 40 fps stream with a 30 fps camera — adjust fps to
+your camera, rule of thumb in the tips below):
 
 ```bash
-fqt send yourfile.pdf
+fqt send yourfile.pdf --fps 40
 ```
 
 Keys while running: `[` `]` fps · `g` codes per frame · `p` bytes per code · `q` quit.
@@ -30,7 +31,7 @@ Keys while running: `[` `]` fps · `g` codes per frame · `p` bytes per code · 
 Receiver:
 
 ```bash
-fqt recv --preview --out received/
+fqt recv --fps 30 --preview --out received/
 ```
 
 Aim with the preview window, then watch the status line: `sharp` is focus
@@ -43,8 +44,7 @@ Tips that matter:
 - Run the sender fps **offset from** the camera fps (camera 30 → sender 40)
 - More light = shorter exposure = fewer wasted frames
 
-Find the best config for your hardware automatically — with a 30 fps camera,
-start scanning around a 40 fps sender:
+Find the best config for your hardware automatically:
 
 ```bash
 fqt sweep --camera 0 --kb 300 --configs "40:2x1:far,40:2x2:far,36:2x2:far"

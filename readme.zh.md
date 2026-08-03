@@ -18,10 +18,10 @@ python3 -m venv .venv
 
 ## 使用
 
-發送:
+發送(範例用 40fps,搭配 30fps 的相機;fps 依你的相機自己調,原則見下面訣竅):
 
 ```bash
-fqt send 檔案.pdf
+fqt send 檔案.pdf --fps 40
 ```
 
 播放中可按:`[` `]` 調 fps · `g` 每幀幾顆碼 · `p` 單碼容量 · `q` 結束。
@@ -29,7 +29,7 @@ fqt send 檔案.pdf
 接收:
 
 ```bash
-fqt recv --preview --out 收檔資料夾/
+fqt recv --fps 30 --preview --out 收檔資料夾/
 ```
 
 用預覽視窗對準,然後看狀態列:`sharp` 是對焦(100 能用、300 很清楚),
@@ -41,7 +41,7 @@ fqt recv --preview --out 收檔資料夾/
 - 發送 fps 跟相機 fps **錯開**(相機 30 → 發送開 40)
 - 光線越亮、曝光越短、廢片越少
 
-自動找出你設備的最佳參數,例如相機 30fps 就從發送 40fps 附近開始掃:
+自動找出你設備的最佳參數:
 
 ```bash
 fqt sweep --camera 0 --kb 300 --configs "40:2x1:far,40:2x2:far,36:2x2:far"
