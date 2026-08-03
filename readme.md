@@ -71,6 +71,28 @@ prints a results table. Config format is `fps:grid:profile`; profile also
 accepts a raw byte count. No camera at hand? `fqt bench --kb 512 --grid 2x2
 --loss 0.2` exercises the pipeline synthetically.
 
+## Current limits, and how they'd be lifted
+
+Sweet spot is **small-but-important files**: under 10 MB transfers in seconds
+to a couple of minutes; 50 MB is workable; beyond that you're waiting, and the
+format stops you at ~190 MB anyway. Compressible content (text, logs, JSON)
+goes several times faster — everything is zstd'd before transmission.
+
+Where the caps come from — every QR carries a 24-byte header with fixed-width
+fields, and the fields can only hold so much:
+
+| limit | cause | lifted by |
+|---|---|---|
+| ~190 MB per transfer | block count `k` is u16 (65,535 × 2,927 B) | v2 header: widen `k` to u32 |
+| 4 GB absolute | `totalLen` is u32 | v2 header: widen to u64 |
+| whole file lives in receiver RAM | fountain decode is random-order | segmentation: split into independent ≤190 MB transfers, write each to disk as it completes |
+| interruption loses progress | receiver keys streams on sender's random session id | resume: key on content fingerprint instead + checkpoint solved blocks to disk |
+
+None of these are architectural walls — the header has a version field, and
+fountain coding is naturally resume-friendly (any unseen frame helps, in any
+order). They're unimplemented because the realistic use case is small files;
+at ~195 KB/s even 4 GB is a six-hour stare at a flickering screen.
+
 ## How it works
 
 Same concept as [decimen-optical-transfer](https://github.com/bashalarmistalt/decimen-optical-transfer):
