@@ -69,10 +69,6 @@ time is the real wall:
 | 4 GB | ~6 h |
 | 10 GB | ~15 h |
 
-Hence unbuilt: streaming 10 GB overnight works on paper, but a cable does it
-in minutes. This channel's value is *transferring with no connection at all*,
-not moving big files.
-
 ## How it works
 
 The channel is one-way — the receiver can't ask for retransmission. Fountain
