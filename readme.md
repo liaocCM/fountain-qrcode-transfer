@@ -1,13 +1,12 @@
-# fqt — file transfer via screen and camera
+# fqt
 
 [中文說明](readme.zh.md)
 
-One machine plays an animated QR stream on its screen, another points a camera
-at it, and the file comes across. No network, no pairing — the only channel
-between the two devices is light.
+Transfer files with a screen and a camera — one side plays an animated QR
+stream, the other films it. No network, no pairing.
 
-Measured: **41.9 KB/s** on a Logitech C270 webcam, **~195 KB/s** with an
-iPhone as the camera. Full numbers in [docs/results.md](docs/results.md).
+Measured: **~42 KB/s** on a Logitech C270, **~195 KB/s** with an iPhone as
+camera ([details](docs/results.md)).
 
 ## Install
 
@@ -16,111 +15,67 @@ python3 -m venv .venv
 .venv/bin/pip install -e .
 ```
 
-All dependencies (numpy, opencv, zxing-cpp, zstandard) ship as prebuilt
-wheels — no compiler needed. Works on macOS / Windows / Linux.
+Prebuilt wheels only, no compiler. macOS / Windows / Linux.
 
-## Send
+## Use
+
+Sender:
 
 ```bash
 fqt send yourfile.pdf
 ```
 
-A window opens and starts streaming. Put it on your brightest screen.
+Keys while running: `[` `]` fps · `g` codes per frame · `p` bytes per code · `q` quit.
 
-Live keys while it runs:
-
-- `[` / `]` — fps down / up
-- `g` — QR codes per frame (1x1 → 2x1 → 2x2 → 3x2; more is faster if the camera can resolve them)
-- `p` — bytes per code (close = max density, far = for distant or weaker cameras)
-- `q` — quit
-
-The status bar below the code shows the current config and its ceiling.
-Changing grid/profile restarts the transfer (the receiver follows
-automatically); changing fps doesn't interrupt anything.
-
-## Receive
+Receiver:
 
 ```bash
 fqt recv --preview --out received/
 ```
 
-`--preview` opens a small camera view for aiming. Then watch the terminal:
+Aim with the preview window, then watch the status line: `sharp` is focus
+(100+ usable, 300+ crisp), `yield` is decode rate. File is SHA-256 verified
+before saving.
 
-- `sharp` — focus quality: 100+ usable, 300+ crisp. Move the camera until it peaks
-- `yield` — codes decoded per captured frame; low means aim, focus, or light is the problem
-- multiple cameras: `--camera 1`, `--camera 2`, …
+Tips that matter:
 
-The file is SHA-256 verified before saving. Restarting the sender mid-transfer
-is fine — the receiver re-locks on its own.
+- Prop the camera; handheld kills throughput
+- Run the sender fps **offset from** the camera fps (camera 30 → sender 40)
+- More light = shorter exposure = fewer wasted frames
 
-Field-tested tips:
-
-- Prop the camera on something. Handheld kills throughput
-- **Don't run the sender at the camera's fps** — detune it (camera at 30 → sender at 40). Matched rates phase-lock the sampling and turn speed into a coin flip
-- Fixed-focus webcams (like the C270) have one sharp distance, ~40 cm. Slide until `sharp` peaks
-- More room light = shorter exposures = fewer wasted frames
-
-## Find your setup's best config
+Find the best config for your hardware automatically:
 
 ```bash
 fqt sweep --camera 0 --kb 300 --configs "30:2x1:far,40:2x1:far,40:2x2:far"
 ```
 
-Runs sender + receiver in one process, tests each config as a real transfer,
-prints a results table. Config format is `fps:grid:profile`; profile also
-accepts a raw byte count. No camera at hand? `fqt bench --kb 512 --grid 2x2
---loss 0.2` exercises the pipeline synthetically.
+## Limits
 
-## Current limits, and how they'd be lifted
+- Sweet spot ≤ 10 MB (seconds to minutes). 50 MB workable. **190 MB hard cap**
+  (header fields: `k` u16, `totalLen` u32). Text/JSON compresses first, so it
+  goes several times faster
+- Whole file is reassembled in receiver RAM
+- Interrupting the receiver loses progress
+- Not encrypted: anyone filming your screen receives the same bytes
 
-Sweet spot is **small-but-important files**: under 10 MB transfers in seconds
-to a couple of minutes; 50 MB is workable; beyond that you're waiting, and the
-format stops you at ~190 MB anyway. Compressible content (text, logs, JSON)
-goes several times faster — everything is zstd'd before transmission.
-
-Where the caps come from — every QR carries a 24-byte header with fixed-width
-fields, and the fields can only hold so much:
-
-| limit | cause | lifted by |
-|---|---|---|
-| ~190 MB per transfer | block count `k` is u16 (65,535 × 2,927 B) | v2 header: widen `k` to u32 |
-| 4 GB absolute | `totalLen` is u32 | v2 header: widen to u64 |
-| whole file lives in receiver RAM | fountain decode is random-order | segmentation: split into independent ≤190 MB transfers, write each to disk as it completes |
-| interruption loses progress | receiver keys streams on sender's random session id | resume: key on content fingerprint instead + checkpoint solved blocks to disk |
-
-None of these are architectural walls — the header has a version field, and
-fountain coding is naturally resume-friendly (any unseen frame helps, in any
-order). They're unimplemented because the realistic use case is small files;
-at ~195 KB/s even 4 GB is a six-hour stare at a flickering screen.
+All liftable (v2 header widening, segmented transfers, checkpoint resume) —
+unbuilt because small files are the realistic use for a ~195 KB/s channel.
 
 ## How it works
 
-Same concept as [decimen-optical-transfer](https://github.com/bashalarmistalt/decimen-optical-transfer):
-fountain coding over an animated QR stream — every frame is some XOR
-combination of the file's blocks, so the receiver just needs *enough* distinct
-frames, in any order. Missed frames cost a little time, never correctness.
+The channel is one-way — the receiver can't ask for retransmission. Fountain
+coding solves this: each frame is an XOR mix of the file's blocks, derived
+from the frame number. Collect *enough distinct frames in any order* and the
+file falls out. A missed frame costs a moment, never correctness.
 
-What this implementation changes:
+On top of that, three throughput tricks:
 
-- **Systematic first pass** — the first k frames are the raw blocks, so a good
-  channel pays ~zero coding overhead; LT repair kicks in only for what was missed
-- **Multi-code grid** — up to 3x2 QR codes per displayed frame
-- **Rotated re-sweeps** — rolling shutter tends to kill the same screen region
-  every frame; retransmission cycles blocks through different positions so no
-  block starves forever
-- Decode is zxing-cpp (C++) on grayscale with unneeded options off; Python
-  only orchestrates
+- First pass sends raw blocks directly — a clean channel pays ~0 coding overhead
+- Up to 3×2 QR codes per displayed frame
+- Retransmissions rotate blocks across screen positions, so a camera artifact
+  that always kills one region can't starve the same blocks forever
 
-Design decisions and wire format: [docs/design.md](docs/design.md). Background
-research: [docs/research-survey.md](docs/research-survey.md),
-[docs/decimen-review.md](docs/decimen-review.md).
+Decode is zxing-cpp (C++); Python only orchestrates. Wire format and design
+decisions: [docs/design.md](docs/design.md).
 
-## Tests
-
-```bash
-.venv/bin/python -m pytest tests/ -q
-```
-
-## License
-
-MIT
+MIT license.
